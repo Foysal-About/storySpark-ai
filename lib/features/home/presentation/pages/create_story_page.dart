@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import 'generating_story_page.dart';
 
 class CreateStoryPage extends StatefulWidget {
   const CreateStoryPage({super.key});
@@ -12,11 +13,18 @@ class CreateStoryPage extends StatefulWidget {
 }
 
 class _CreateStoryPageState extends State<CreateStoryPage> {
+  final TextEditingController heroNameController = TextEditingController();
   String selectedHero = 'Unicorn';
   String selectedLocation = 'The Moon';
   String selectedChallenge = 'Find the lost key';
   String selectedMood = '😊';
   double storyLength = 7;
+
+  @override
+  void dispose() {
+    heroNameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +50,8 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
                         const SizedBox(height: 24),
                         _buildSectionTitle('Who is the hero?'),
                         const SizedBox(height: 12),
-                        const LiquidGlassTextField(
+                        LiquidGlassTextField(
+                          controller: heroNameController,
                           hintText: 'Give your hero a name...',
                           prefixIcon: Icons.edit_outlined,
                         ),
@@ -127,26 +136,47 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
   }
 
   Widget _buildSurpriseMeButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white),
-      ),
-      child: const Row(
-        children: [
-          Text('🎲', style: TextStyle(fontSize: 14)),
-          SizedBox(width: 6),
-          Text(
-            'Surprise me',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF6E63E0),
+    return GestureDetector(
+      onTap: () {
+        final heroes = ['Unicorn', 'Robot', 'Dragon'];
+        final locations = ['Castle', 'The Moon', 'Deep Sea'];
+        final challenges = [
+          'Find the lost key',
+          'Calm the storm',
+          'Save the party'
+        ];
+        final moods = ['😊', '😴', '🤡'];
+
+        setState(() {
+          selectedHero = (heroes..shuffle()).first;
+          selectedLocation = (locations..shuffle()).first;
+          selectedChallenge = (challenges..shuffle()).first;
+          selectedMood = (moods..shuffle()).first;
+          storyLength = (5 + (10 * (DateTime.now().millisecond / 1000))).toDouble();
+          heroNameController.text = ''; // Clear custom name on surprise
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white),
+        ),
+        child: const Row(
+          children: [
+            Text('🎲', style: TextStyle(fontSize: 14)),
+            SizedBox(width: 6),
+            Text(
+              'Surprise me',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF6E63E0),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -395,6 +425,13 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
   }
 
   Widget _buildPreviewSection() {
+    final heroEmoji = {
+          'Unicorn': '🦄',
+          'Robot': '🤖',
+          'Dragon': '🐲',
+        }[selectedHero] ??
+        '✨';
+
     return LiquidGlass(
       borderRadius: BorderRadius.circular(24),
       padding: const EdgeInsets.all(20),
@@ -402,7 +439,7 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🦄', style: TextStyle(fontSize: 24)),
+          Text(heroEmoji, style: const TextStyle(fontSize: 24)),
           const SizedBox(width: 16),
           Expanded(
             child: RichText(
@@ -420,7 +457,7 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
                   ),
                   TextSpan(
                     text:
-                        'A brave unicorn travels to the Moon to find the lost key...',
+                        'A brave $selectedHero travels to $selectedLocation to $selectedChallenge...',
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary.withOpacity(0.7),
@@ -436,26 +473,40 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
   }
 
   Widget _buildCreateButton() {
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: AppGradients.accent,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accentStart.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return GestureDetector(
+      onTap: () {
+        final heroName = heroNameController.text.trim();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GeneratingStoryPage(
+              hero: heroName.isNotEmpty ? heroName : selectedHero,
+              location: selectedLocation,
+            ),
           ),
-        ],
-      ),
-      child: const Center(
-        child: Text(
-          'Start your adventure',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+        );
+      },
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: AppGradients.accent,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.accentStart.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            'Start your adventure',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),

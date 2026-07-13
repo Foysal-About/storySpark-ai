@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import 'library_page.dart';
+import 'favorites_page.dart';
 import 'create_story_page.dart';
+import 'profile_page.dart';
 
 /// The main dashboard for StorySpark AI, featuring a scrollable list of stories,
 /// challenges, and a floating navigation bar.
@@ -33,7 +36,7 @@ class HomePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  _buildHeader(),
+                  _buildHeader(context),
                   const SizedBox(height: 24),
                   _buildSearchBar(),
                   const SizedBox(height: 24),
@@ -66,7 +69,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
         const Expanded(
@@ -95,7 +98,15 @@ class HomePage extends StatelessWidget {
         ),
         _buildIconCircle(Icons.notifications_none_outlined),
         const SizedBox(width: 12),
-        _buildProfileCircle('🦄'),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+          child: _buildProfileCircle('🦄'),
+        ),
       ],
     );
   }
@@ -228,7 +239,7 @@ class HomePage extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CreateStoryPage()),
+          MaterialPageRoute(builder: (context) => CreateStoryPage()),
         );
       },
       child: Container(
@@ -439,14 +450,48 @@ class HomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const CreateStoryPage(),
+                  builder: (context) => CreateStoryPage(),
                 ),
               );
             },
           ),
-          const _NavBarItem(emoji: '📚', label: 'Library', isActive: false),
-          const _NavBarItem(emoji: '💖', label: 'Favorites', isActive: false),
-          const _NavBarItem(emoji: '😊', label: 'Profile', isActive: false),
+          _NavBarItem(
+            emoji: '📚',
+            label: 'Library',
+            isActive: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LibraryPage(),
+                ),
+              );
+            },
+          ),
+          _NavBarItem(
+            emoji: '💖',
+            label: 'Favorites',
+            isActive: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FavoritesPage(),
+                ),
+              );
+            },
+          ),
+          _NavBarItem(
+            emoji: '😊',
+            label: 'Profile',
+            isActive: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilePage()),
+              );
+            },
+          ),
         ],
       ),
     );
