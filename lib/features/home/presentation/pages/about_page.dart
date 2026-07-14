@@ -36,7 +36,7 @@ class AboutPage extends StatelessWidget {
                             boxShadow: [
                               BoxShadow(
                                 color:
-                                    AppColors.accentStart.withOpacity(0.3),
+                                    AppColors.accentStart.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),

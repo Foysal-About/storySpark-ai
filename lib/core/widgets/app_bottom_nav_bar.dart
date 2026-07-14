@@ -101,7 +101,7 @@ class _NavBarItem extends StatelessWidget {
             style: TextStyle(
               color: isActive
                   ? AppColors.accentStart
-                  : AppColors.textSecondary.withOpacity(0.5),
+                  : AppColors.textSecondary.withValues(alpha: 0.5),
               fontSize: 11,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
             ),

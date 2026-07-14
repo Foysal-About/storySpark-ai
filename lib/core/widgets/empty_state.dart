@@ -62,7 +62,7 @@ class EmptyState extends StatelessWidget {
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accentStart.withOpacity(0.3),
+                      color: AppColors.accentStart.withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),

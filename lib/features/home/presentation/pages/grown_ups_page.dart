@@ -179,7 +179,7 @@ class _GrownUpsPageState extends ConsumerState<GrownUpsPage> {
             'To keep stories safe, answer this question:',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.9),
+              color: AppColors.textSecondary.withValues(alpha: 0.9),
               fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
@@ -268,7 +268,7 @@ class _GrownUpsPageState extends ConsumerState<GrownUpsPage> {
             'Deleting data here removes it from this device permanently. '
             'Nothing is stored anywhere else.',
             style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.8),
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
               fontSize: 13,
               height: 1.5,
               fontWeight: FontWeight.w500,
@@ -349,7 +349,7 @@ class _GrownUpsPageState extends ConsumerState<GrownUpsPage> {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
+import '../../../../core/widgets/error_dialog.dart';
 import '../../../../core/widgets/liquid_glass.dart';
 import '../../../story/domain/entities/generated_story.dart';
 import '../../../story/domain/entities/story_request.dart';
@@ -68,6 +69,14 @@ class _GeneratingStoryPageState extends ConsumerState<GeneratingStoryPage>
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<GeneratedStory?>>(storyGenerationProvider, (previous, next) {
+      if (next.hasError && !next.isLoading) {
+        ErrorDialog.show(
+          context,
+          onTryAgain: _generate,
+          onBackHome: () => Navigator.pop(context),
+        );
+      }
+
       final story = next.value;
       if (story != null) {
         Navigator.pushReplacement(
@@ -81,8 +90,6 @@ class _GeneratingStoryPageState extends ConsumerState<GeneratingStoryPage>
         );
       }
     });
-
-    final state = ref.watch(storyGenerationProvider);
 
     return Scaffold(
       body: Stack(
@@ -110,7 +117,7 @@ class _GeneratingStoryPageState extends ConsumerState<GeneratingStoryPage>
             ),
           ),
           SafeArea(
-            child: state.hasError ? _buildErrorBody(state) : _buildLoadingBody(),
+            child: _buildLoadingBody(),
           ),
         ],
       ),
@@ -156,69 +163,6 @@ class _GeneratingStoryPageState extends ConsumerState<GeneratingStoryPage>
         _buildTipBox(),
         const Spacer(),
         const SizedBox(height: 40),
-      ],
-    );
-  }
-
-  Widget _buildErrorBody(AsyncValue<GeneratedStory?> state) {
-    final error = state.error;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('😕', style: TextStyle(fontSize: 56)),
-        const SizedBox(height: 24),
-        const Text(
-          "Couldn't create your story",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Text(
-            '$error',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
-        GestureDetector(
-          onTap: _generate,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              gradient: AppGradients.accent,
-            ),
-            child: const Text(
-              'Try again',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Text(
-            'Go back',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
       ],
     );
   }

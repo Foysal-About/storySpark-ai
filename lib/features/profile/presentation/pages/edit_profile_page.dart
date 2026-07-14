@@ -85,7 +85,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                               boxShadow: [
                                 BoxShadow(
                                   color:
-                                      const Color(0xFFD1913C).withOpacity(0.3),
+                                      const Color(0xFFD1913C).withValues(alpha: 0.3),
                                   blurRadius: 20,
                                   offset: const Offset(0, 10),
                                 ),
@@ -146,7 +146,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   gradient: AppGradients.accent,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accentStart.withOpacity(0.3),
+                      color: AppColors.accentStart.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -209,18 +209,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               decoration: BoxDecoration(
                 color: _selectedAvatar == emoji
                     ? Colors.white
-                    : Colors.white.withOpacity(0.4),
+                    : Colors.white.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _selectedAvatar == emoji
-                      ? AppColors.accentStart.withOpacity(0.5)
+                      ? AppColors.accentStart.withValues(alpha: 0.5)
                       : Colors.transparent,
                   width: 2,
                 ),
                 boxShadow: _selectedAvatar == emoji
                     ? [
                         BoxShadow(
-                          color: AppColors.accentStart.withOpacity(0.2),
+                          color: AppColors.accentStart.withValues(alpha: 0.2),
                           blurRadius: 12,
                           spreadRadius: 2,
                         )

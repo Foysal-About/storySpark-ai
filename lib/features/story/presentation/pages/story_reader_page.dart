@@ -245,11 +245,11 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color.withOpacity(0.7), color],
+          colors: [color.withValues(alpha: 0.7), color],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -294,7 +294,7 @@ class _StoryReaderPageState extends ConsumerState<StoryReaderPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
