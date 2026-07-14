@@ -1,19 +1,19 @@
-import '../../../../core/services/gemini_service.dart';
+import '../../../../core/services/text_generation_service.dart';
 import '../../domain/entities/generated_story.dart';
 import '../../domain/entities/story_request.dart';
 import '../../domain/repositories/story_repository.dart';
 
 class StoryRepositoryImpl implements StoryRepository {
-  const StoryRepositoryImpl(this._geminiService);
+  const StoryRepositoryImpl(this._textService);
 
-  final GeminiService _geminiService;
+  final TextGenerationService _textService;
 
   static const _systemPrompt =
       "You are an expert children's story writer. Create original, engaging, age-appropriate stories.";
 
   @override
   Future<GeneratedStory> generateStory(StoryRequest request) async {
-    final raw = await _geminiService.generateContent(
+    final raw = await _textService.generateContent(
       systemPrompt: _systemPrompt,
       userPrompt: _buildUserPrompt(request),
     );

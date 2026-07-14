@@ -1,76 +1,89 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../app/main_shell.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_gradients.dart';
+import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import '../../../story/domain/entities/saved_story.dart';
+import '../../../story/presentation/pages/story_reader_page.dart';
+import '../../../story/presentation/providers/story_providers.dart';
+import '../../../story/presentation/story_visuals.dart';
 
-import 'create_story_page.dart';
-import 'library_page.dart';
-import 'profile_page.dart';
-
-class FavoritesPage extends StatelessWidget {
+/// The Favorites tab: every story marked with a heart, as a grid or a list.
+class FavoritesPage extends ConsumerStatefulWidget {
   const FavoritesPage({super.key});
 
   @override
+  ConsumerState<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends ConsumerState<FavoritesPage> {
+  bool _gridView = true;
+
+  void _openStory(SavedStory story) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => StoryReaderPage(story: story)),
+    );
+  }
+
+  void _unfavorite(SavedStory story) {
+    ref.read(storyLibraryProvider.notifier).toggleFavorite(story.id);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('"${story.title}" removed from favorites')),
+      );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
+    final favorites = [...ref.watch(favoriteStoriesProvider)]
+      ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+
+    return SafeArea(
+      bottom: false,
+      child: Column(
         children: [
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(gradient: AppGradients.background),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    padding: const EdgeInsets.all(20),
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.85,
-                    children: const [
-                      _FavoriteStoryCard(
-                        emoji: '🦄',
-                        title: 'Luna and the Moon Key',
-                        duration: '7 min',
-                        tag: 'Adventure',
-                        color: Colors.indigoAccent,
+          _buildHeader(),
+          Expanded(
+            child: favorites.isEmpty
+                ? EmptyState(
+                    emoji: '💖',
+                    title: 'No favorites yet',
+                    subtitle:
+                        'Tap the heart on any story in your library and it will appear here.',
+                    actionLabel: '📚 Go to library',
+                    onAction: () =>
+                        ref.read(mainTabIndexProvider.notifier).select(1),
+                  )
+                : _gridView
+                    ? GridView.count(
+                        crossAxisCount: 2,
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 0.85,
+                        children: [
+                          for (final story in favorites)
+                            _FavoriteGridCard(
+                              story: story,
+                              onTap: () => _openStory(story),
+                              onHeartTap: () => _unfavorite(story),
+                            ),
+                        ],
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                        itemCount: favorites.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) => _FavoriteListCard(
+                          story: favorites[index],
+                          onTap: () => _openStory(favorites[index]),
+                          onHeartTap: () => _unfavorite(favorites[index]),
+                        ),
                       ),
-                      _FavoriteStoryCard(
-                        emoji: '🐳',
-                        title: 'Whale Song Sea',
-                        duration: '8 min',
-                        tag: 'Calm',
-                        color: Colors.tealAccent,
-                      ),
-                      _FavoriteStoryCard(
-                        emoji: '🦊',
-                        title: 'Fern the Fox',
-                        duration: '5 min',
-                        tag: 'Kindness',
-                        color: Colors.orangeAccent,
-                      ),
-                      _FavoriteStoryCard(
-                        emoji: '🏰',
-                        title: 'The Giggling Castle',
-                        duration: '6 min',
-                        tag: 'Funny',
-                        color: Colors.pinkAccent,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 30,
-            child: _buildBottomNavBar(context),
           ),
         ],
       ),
@@ -92,17 +105,19 @@ class FavoritesPage extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white.withOpacity(0.4)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.grid_view_rounded, size: 20, color: AppColors.textPrimary),
-                SizedBox(width: 8),
-                Icon(Icons.list_rounded, size: 20, color: AppColors.textSecondary),
+                _viewToggle(Icons.grid_view_rounded, isActive: _gridView,
+                    onTap: () => setState(() => _gridView = true)),
+                const SizedBox(width: 4),
+                _viewToggle(Icons.list_rounded, isActive: !_gridView,
+                    onTap: () => setState(() => _gridView = false)),
               ],
             ),
           ),
@@ -111,202 +126,203 @@ class FavoritesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    return LiquidGlass(
-      borderRadius: BorderRadius.circular(40),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      fillOpacity: 0.8,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _NavBarItem(
-            emoji: '🏠',
-            label: 'Home',
-            isActive: false,
-            onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
-          ),
-          _NavBarItem(
-            emoji: '✨',
-            label: 'Create',
-            isActive: false,
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => CreateStoryPage()),
-              );
-            },
-          ),
-          _NavBarItem(
-            emoji: '📚',
-            label: 'Library',
-            isActive: false,
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LibraryPage()),
-              );
-            },
-          ),
-          const _NavBarItem(emoji: '💖', label: 'Favorites', isActive: true),
-          _NavBarItem(
-            emoji: '😊',
-            label: 'Profile',
-            isActive: false,
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfilePage()),
-              );
-            },
-          ),
-        ],
+  Widget _viewToggle(IconData icon,
+      {required bool isActive, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isActive ? AppColors.accentStart : AppColors.textSecondary,
+        ),
       ),
     );
   }
 }
 
-class _FavoriteStoryCard extends StatelessWidget {
-  const _FavoriteStoryCard({
-    required this.emoji,
-    required this.title,
-    required this.duration,
-    required this.tag,
-    required this.color,
+class _FavoriteGridCard extends StatelessWidget {
+  const _FavoriteGridCard({
+    required this.story,
+    this.onTap,
+    this.onHeartTap,
   });
 
-  final String emoji;
-  final String title;
-  final String duration;
-  final String tag;
-  final Color color;
+  final SavedStory story;
+  final VoidCallback? onTap;
+  final VoidCallback? onHeartTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [color.withOpacity(0.5), color],
+    final color = StoryVisuals.cardColor(story);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [color.withOpacity(0.5), color],
+                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              child: Stack(
-                children: [
-                  Center(child: Text(emoji, style: const TextStyle(fontSize: 48))),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Text(
+                        StoryVisuals.heroEmoji(story.hero),
+                        style: const TextStyle(fontSize: 48),
                       ),
-                      child: const Icon(Icons.favorite, color: Colors.pink, size: 16),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: onHeartTap,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.favorite,
+                              color: Colors.pink, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    story.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${story.readMinutes} min · ${StoryVisuals.tag(story)}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$duration · $tag',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _NavBarItem extends StatelessWidget {
-  const _NavBarItem({
-    required this.emoji,
-    required this.label,
-    required this.isActive,
+class _FavoriteListCard extends StatelessWidget {
+  const _FavoriteListCard({
+    required this.story,
     this.onTap,
+    this.onHeartTap,
   });
 
-  final String emoji;
-  final String label;
-  final bool isActive;
+  final SavedStory story;
   final VoidCallback? onTap;
+  final VoidCallback? onHeartTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Opacity(
-            opacity: isActive ? 1.0 : 0.4,
-            child: Text(
-              emoji,
-              style: const TextStyle(fontSize: 22),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF6E63E0) : AppColors.textSecondary.withOpacity(0.5),
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-          if (isActive)
+      child: LiquidGlass(
+        borderRadius: BorderRadius.circular(28),
+        padding: const EdgeInsets.all(12),
+        fillOpacity: 0.5,
+        child: Row(
+          children: [
             Container(
-              margin: const EdgeInsets.only(top: 2),
-              width: 4,
-              height: 4,
-              decoration: const BoxDecoration(
-                color: Color(0xFF6E63E0),
-                shape: BoxShape.circle,
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: StoryVisuals.cardColor(story),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Center(
+                child: Text(
+                  StoryVisuals.heroEmoji(story.hero),
+                  style: const TextStyle(fontSize: 34),
+                ),
               ),
             ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    story.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${story.readMinutes} min · ${StoryVisuals.tag(story)}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: onHeartTap,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.favorite, color: Colors.pink, size: 24),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

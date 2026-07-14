@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
+import '../../../settings/domain/entities/app_settings.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
+import 'about_page.dart';
+import 'privacy_safety_page.dart';
 
-class SettingsPage extends StatelessWidget {
+/// App settings, persisted on the device.
+class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final controller = ref.read(appSettingsProvider.notifier);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -22,7 +32,8 @@ class SettingsPage extends StatelessWidget {
                 _buildHeader(context),
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                     children: [
                       _buildSectionHeader('EXPERIENCE'),
                       const SizedBox(height: 12),
@@ -30,21 +41,36 @@ class SettingsPage extends StatelessWidget {
                         _SettingItem(
                           emoji: '🎨',
                           title: 'Appearance',
-                          trailing: 'Aurora',
-                          onTap: () {},
+                          trailing: settings.appearance,
+                          onTap: () => _showPicker(
+                            context,
+                            title: 'Appearance',
+                            options: AppSettings.appearances,
+                            selected: settings.appearance,
+                            onSelected: (value) =>
+                                controller.update(appearance: value),
+                          ),
                         ),
                         _SettingItem(
                           emoji: '🔊',
                           title: 'Sounds',
                           hasSwitch: true,
-                          switchValue: true,
-                          onChanged: (val) {},
+                          switchValue: settings.soundsEnabled,
+                          onChanged: (value) =>
+                              controller.update(soundsEnabled: value),
                         ),
                         _SettingItem(
                           emoji: '🎙️',
                           title: 'Narration voice',
-                          trailing: 'Fairy Fern',
-                          onTap: () {},
+                          trailing: settings.narrationVoice,
+                          onTap: () => _showPicker(
+                            context,
+                            title: 'Narration voice',
+                            options: AppSettings.narrationVoices,
+                            selected: settings.narrationVoice,
+                            onSelected: (value) =>
+                                controller.update(narrationVoice: value),
+                          ),
                         ),
                       ]),
                       const SizedBox(height: 32),
@@ -55,24 +81,48 @@ class SettingsPage extends StatelessWidget {
                           emoji: '🔔',
                           title: 'Notifications',
                           hasSwitch: true,
-                          switchValue: false,
-                          onChanged: (val) {},
+                          switchValue: settings.notificationsEnabled,
+                          onChanged: (value) =>
+                              controller.update(notificationsEnabled: value),
                         ),
                         _SettingItem(
                           emoji: '🌐',
                           title: 'Language',
-                          trailing: 'English',
-                          onTap: () {},
+                          trailing: settings.language,
+                          onTap: () => _showPicker(
+                            context,
+                            title: 'Language',
+                            options: const ['English'],
+                            selected: settings.language,
+                            footnote: 'More languages are coming soon! 🌍',
+                            onSelected: (value) =>
+                                controller.update(language: value),
+                          ),
                         ),
                         _SettingItem(
                           emoji: '🛡️',
                           title: 'Privacy & safety',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PrivacySafetyPage(),
+                              ),
+                            );
+                          },
                         ),
                         _SettingItem(
                           emoji: '📖',
-                          title: 'About StoryWonder',
-                          onTap: () {},
+                          title: 'About StorySpark AI',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AboutPage(),
+                              ),
+                            );
+                          },
                         ),
                       ]),
                     ],
@@ -82,6 +132,72 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPicker(
+    BuildContext context, {
+    required String title,
+    required List<String> options,
+    required String selected,
+    required ValueChanged<String> onSelected,
+    String? footnote,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (final option in options)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  option,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                trailing: option == selected
+                    ? const Icon(Icons.check_circle_rounded,
+                        color: AppColors.accentStart)
+                    : null,
+                onTap: () {
+                  onSelected(option);
+                  Navigator.pop(context);
+                },
+              ),
+            if (footnote != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                footnote,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

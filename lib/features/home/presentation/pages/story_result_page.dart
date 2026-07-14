@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -36,21 +37,37 @@ class _StoryResultPageState extends ConsumerState<StoryResultPage> {
 
   Future<void> _saveStory() async {
     if (_isSaved) return;
-    await ref.read(storyLocalDataSourceProvider).saveStory(
+    final now = DateTime.now();
+    await ref.read(storyLibraryProvider.notifier).save(
           SavedStory(
+            id: 'story_${now.microsecondsSinceEpoch}',
             title: widget.story.title,
             content: widget.story.content,
             hero: widget.request.hero,
             location: widget.request.location,
+            mood: widget.request.mood,
+            lengthMinutes: widget.request.lengthMinutes,
             imageUrl: widget.story.imageUrl,
-            savedAt: DateTime.now(),
+            savedAt: now,
           ),
         );
-    ref.invalidate(savedStoriesProvider);
     if (!mounted) return;
     setState(() => _isSaved = true);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Story saved to your library! ✨')),
+    );
+  }
+
+  Future<void> _shareStory() async {
+    await Clipboard.setData(ClipboardData(
+      text:
+          '${widget.story.title}\n\n${widget.story.content}\n\n— made with StorySpark AI ✨',
+    ));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Story copied — paste it anywhere to share! 📋'),
+      ),
     );
   }
 
@@ -126,7 +143,7 @@ class _StoryResultPageState extends ConsumerState<StoryResultPage> {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: _shareStory,
             icon: const Icon(Icons.share_outlined),
           ),
         ],

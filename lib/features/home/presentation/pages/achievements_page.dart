@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import '../../../story/presentation/providers/story_providers.dart';
+import '../achievements.dart';
 
-class AchievementsPage extends StatelessWidget {
+/// Level and badge collection, computed live from real story activity.
+class AchievementsPage extends ConsumerWidget {
   const AchievementsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(storyStatsProvider);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -36,9 +43,9 @@ class AchievementsPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        _buildLevelCard(),
+                        _buildLevelCard(stats),
                         const SizedBox(height: 32),
-                        _buildBadgesGrid(),
+                        _buildBadgesGrid(stats),
                         const SizedBox(height: 40),
                       ],
                     ),
@@ -59,14 +66,15 @@ class AchievementsPage extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppColors.textPrimary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLevelCard() {
+  Widget _buildLevelCard(StoryStats stats) {
     return LiquidGlass(
       borderRadius: BorderRadius.circular(32),
       padding: const EdgeInsets.all(24),
@@ -86,9 +94,9 @@ class AchievementsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Level 4 Storyteller',
-                  style: TextStyle(
+                Text(
+                  'Level ${stats.level} Storyteller',
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -98,15 +106,16 @@ class AchievementsPage extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
-                    value: 350 / 500,
+                    value: stats.starsIntoLevel / StoryStats.starsPerLevel,
                     backgroundColor: Colors.white.withOpacity(0.3),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFFFF8FB1)),
+                    valueColor:
+                        const AlwaysStoppedAnimation(Color(0xFFFF8FB1)),
                     minHeight: 10,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '350 / 500 stars to Level 5',
+                  '${stats.starsIntoLevel} / ${StoryStats.starsPerLevel} stars to Level ${stats.level + 1}',
                   style: TextStyle(
                     color: AppColors.textSecondary.withOpacity(0.8),
                     fontSize: 13,
@@ -121,7 +130,7 @@ class AchievementsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBadgesGrid() {
+  Widget _buildBadgesGrid(StoryStats stats) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -129,99 +138,67 @@ class AchievementsPage extends StatelessWidget {
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
       childAspectRatio: 0.85,
-      children: const [
-        _BadgeCard(
-          emoji: '⭐',
-          title: 'First Story',
-          subtitle: 'Created your first tale',
-          bgColor: Color(0xFFFFEDD5),
-        ),
-        _BadgeCard(
-          emoji: '🦉',
-          title: 'Night Owl',
-          subtitle: '5 bedtime stories',
-          bgColor: Color(0xFFE0E7FF),
-        ),
-        _BadgeCard(
-          emoji: '🐠',
-          title: 'Explorer',
-          subtitle: 'Visited every world',
-          bgColor: Color(0xFFDCFCE7),
-        ),
-        _BadgeCard(
-          emoji: '💖',
-          title: 'Big Heart',
-          subtitle: '10 favorites saved',
-          bgColor: Color(0xFFFCE7F3),
-        ),
-        _BadgeCard(
-          emoji: '🔒',
-          title: 'Dragon Tamer',
-          subtitle: 'Locked · 3 dragon tales',
-          isLocked: true,
-        ),
-        _BadgeCard(
-          emoji: '🔒',
-          title: 'Star Reader',
-          subtitle: 'Locked · read 30 stories',
-          isLocked: true,
-        ),
+      children: [
+        for (final achievement in appAchievements)
+          _BadgeCard(
+            achievement: achievement,
+            isUnlocked: achievement.isUnlocked(stats),
+          ),
       ],
     );
   }
 }
 
 class _BadgeCard extends StatelessWidget {
-  const _BadgeCard({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    this.bgColor,
-    this.isLocked = false,
-  });
+  const _BadgeCard({required this.achievement, required this.isUnlocked});
 
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final Color? bgColor;
-  final bool isLocked;
+  final Achievement achievement;
+  final bool isUnlocked;
 
   @override
   Widget build(BuildContext context) {
     return LiquidGlass(
       borderRadius: BorderRadius.circular(28),
       padding: const EdgeInsets.all(16),
-      fillOpacity: isLocked ? 0.3 : 0.6,
+      fillOpacity: isUnlocked ? 0.6 : 0.3,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isLocked ? Colors.white.withOpacity(0.3) : bgColor,
+              color: isUnlocked
+                  ? achievement.bgColor
+                  : Colors.white.withOpacity(0.3),
               shape: BoxShape.circle,
             ),
             child: Text(
-              emoji,
-              style: TextStyle(fontSize: 32, color: isLocked ? Colors.grey : null),
+              isUnlocked ? achievement.emoji : '🔒',
+              style: const TextStyle(fontSize: 32),
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            title,
+            achievement.title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isLocked ? AppColors.textPrimary.withOpacity(0.5) : AppColors.textPrimary,
+              color: isUnlocked
+                  ? AppColors.textPrimary
+                  : AppColors.textPrimary.withOpacity(0.5),
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            subtitle,
+            isUnlocked
+                ? achievement.unlockedSubtitle
+                : 'Locked · ${achievement.lockedHint}',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isLocked ? AppColors.textSecondary.withOpacity(0.5) : AppColors.textSecondary,
+              color: isUnlocked
+                  ? AppColors.textSecondary
+                  : AppColors.textSecondary.withOpacity(0.5),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

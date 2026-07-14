@@ -1,23 +1,37 @@
-// Dev-only check: exercises the real Gemini integration end-to-end.
-// Usage: GEMINI_API_KEY=... dart run tool/live_story_check.dart
+// Dev-only check: exercises the real story-generation integration end-to-end.
+// Usage:
+//   GEMINI_API_KEY=...    dart run tool/live_story_check.dart
+//   ANTHROPIC_API_KEY=... dart run tool/live_story_check.dart   (Claude Opus 4.8)
 import 'dart:io';
 
+import 'package:storyspark_ai/core/services/claude_service.dart';
 import 'package:storyspark_ai/core/services/gemini_service.dart';
+import 'package:storyspark_ai/core/services/text_generation_service.dart';
 import 'package:storyspark_ai/features/story/data/repositories/story_repository_impl.dart';
 import 'package:storyspark_ai/features/story/domain/entities/story_request.dart';
 
 Future<void> main() async {
-  final apiKey = Platform.environment['GEMINI_API_KEY'] ?? '';
-  final model = Platform.environment['GEMINI_MODEL'] ?? 'gemini-flash-latest';
+  final anthropicKey = Platform.environment['ANTHROPIC_API_KEY'] ?? '';
+  final geminiKey = Platform.environment['GEMINI_API_KEY'] ?? '';
 
-  if (apiKey.isEmpty) {
-    stderr.writeln('GEMINI_API_KEY is not set.');
+  final TextGenerationService service;
+  final String engineLabel;
+  if (anthropicKey.isNotEmpty) {
+    final model =
+        Platform.environment['CLAUDE_MODEL'] ?? 'claude-opus-4-8';
+    service = ClaudeService(apiKey: anthropicKey, model: model);
+    engineLabel = 'claude ($model)';
+  } else if (geminiKey.isNotEmpty) {
+    final model =
+        Platform.environment['GEMINI_MODEL'] ?? 'gemini-flash-latest';
+    service = GeminiService(apiKey: geminiKey, model: model);
+    engineLabel = 'gemini ($model)';
+  } else {
+    stderr.writeln('Set ANTHROPIC_API_KEY or GEMINI_API_KEY.');
     exit(1);
   }
 
-  final repository = StoryRepositoryImpl(
-    GeminiService(apiKey: apiKey, model: model),
-  );
+  final repository = StoryRepositoryImpl(service);
 
   final minutes = int.tryParse(Platform.environment['STORY_MINUTES'] ?? '') ?? 3;
 
@@ -30,7 +44,7 @@ Future<void> main() async {
     lengthMinutes: minutes,
   );
 
-  print('Generating story with model=$model ...');
+  print('Generating story with engine=$engineLabel ...');
   final stopwatch = Stopwatch()..start();
   final story = await repository.generateStory(request);
   stopwatch.stop();

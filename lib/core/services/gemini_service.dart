@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/env.dart';
+import 'text_generation_service.dart';
 
 /// Thrown when a request to the Gemini API fails.
 class GeminiServiceException implements Exception {
@@ -22,7 +23,7 @@ class GeminiRateLimitException extends GeminiServiceException {
 }
 
 /// Thin wrapper around Google's Gemini generateContent endpoint.
-class GeminiService {
+class GeminiService implements TextGenerationService {
   GeminiService({http.Client? client, String? apiKey, String? model})
       : _client = client ?? http.Client(),
         _apiKey = apiKey ?? Env.geminiApiKey,
@@ -34,6 +35,7 @@ class GeminiService {
   final String _apiKey;
   final String _model;
 
+  @override
   Future<String> generateContent({
     required String systemPrompt,
     required String userPrompt,

@@ -68,12 +68,16 @@ class LiquidGlassTextField extends StatelessWidget {
     this.prefixIcon,
     this.controller,
     this.onChanged,
+    this.readOnly = false,
+    this.onTap,
   });
 
   final String hintText;
   final IconData? prefixIcon;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +88,8 @@ class LiquidGlassTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        readOnly: readOnly,
+        onTap: onTap,
         style: const TextStyle(
           color: Color(0xFF2C2A4A),
           fontSize: 16,
