@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import '../../../story/domain/entities/story_request.dart';
 import 'generating_story_page.dart';
 
 class CreateStoryPage extends StatefulWidget {
@@ -476,13 +477,18 @@ class _CreateStoryPageState extends State<CreateStoryPage> {
     return GestureDetector(
       onTap: () {
         final heroName = heroNameController.text.trim();
+        final request = StoryRequest(
+          hero: selectedHero,
+          heroName: heroName.isNotEmpty ? heroName : selectedHero,
+          location: selectedLocation,
+          challenge: selectedChallenge,
+          mood: selectedMood,
+          lengthMinutes: storyLength.round(),
+        );
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => GeneratingStoryPage(
-              hero: heroName.isNotEmpty ? heroName : selectedHero,
-              location: selectedLocation,
-            ),
+            builder: (context) => GeneratingStoryPage(request: request),
           ),
         );
       },

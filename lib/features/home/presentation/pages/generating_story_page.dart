@@ -1,27 +1,30 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/widgets/liquid_glass.dart';
+import '../../../story/domain/entities/generated_story.dart';
+import '../../../story/domain/entities/story_request.dart';
+import '../../../story/presentation/providers/story_providers.dart';
 import 'story_result_page.dart';
 
-class GeneratingStoryPage extends StatefulWidget {
-  final String hero;
-  final String location;
+class GeneratingStoryPage extends ConsumerStatefulWidget {
+  final StoryRequest request;
 
   const GeneratingStoryPage({
     super.key,
-    required this.hero,
-    required this.location,
+    required this.request,
   });
 
   @override
-  State<GeneratingStoryPage> createState() => _GeneratingStoryPageState();
+  ConsumerState<GeneratingStoryPage> createState() => _GeneratingStoryPageState();
 }
 
-class _GeneratingStoryPageState extends State<GeneratingStoryPage> {
-  double _progress = 0.0;
-  Timer? _timer;
+class _GeneratingStoryPageState extends ConsumerState<GeneratingStoryPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _progressController;
+  Timer? _factTimer;
   int _currentFactIndex = 0;
 
   final List<String> _facts = [
@@ -34,33 +37,20 @@ class _GeneratingStoryPageState extends State<GeneratingStoryPage> {
   @override
   void initState() {
     super.initState();
-    _startProgress();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
     _rotateFacts();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _generate());
   }
 
-  void _startProgress() {
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      setState(() {
-        _progress += 0.005;
-        if (_progress >= 1.0) {
-          _progress = 1.0;
-          _timer?.cancel();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StoryResultPage(
-                hero: widget.hero,
-                location: widget.location,
-              ),
-            ),
-          );
-        }
-      });
-    });
+  Future<void> _generate() {
+    return ref.read(storyGenerationProvider.notifier).generate(widget.request);
   }
 
   void _rotateFacts() {
-    Timer.periodic(const Duration(seconds: 4), (timer) {
+    _factTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (!mounted) return;
       setState(() {
         _currentFactIndex = (_currentFactIndex + 1) % _facts.length;
@@ -70,12 +60,30 @@ class _GeneratingStoryPageState extends State<GeneratingStoryPage> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _progressController.dispose();
+    _factTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<GeneratedStory?>>(storyGenerationProvider, (previous, next) {
+      final story = next.value;
+      if (story != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StoryResultPage(
+              request: widget.request,
+              story: story,
+            ),
+          ),
+        );
+      }
+    });
+
+    final state = ref.watch(storyGenerationProvider);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -102,57 +110,116 @@ class _GeneratingStoryPageState extends State<GeneratingStoryPage> {
             ),
           ),
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                const Text(
-                  'Story Generation',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 60),
-                _buildMagicCircle(),
-                const SizedBox(height: 48),
-                const Text(
-                  'Sprinkling stardust...',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your ${widget.hero.toLowerCase()} is packing for ${widget.location}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                _buildProgressBar(),
-                const SizedBox(height: 12),
-                Text(
-                  '${(_progress * 100).toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF6E63E0),
-                  ),
-                ),
-                const Spacer(),
-                _buildTipBox(),
-                const SizedBox(height: 40),
-              ],
-            ),
+            child: state.hasError ? _buildErrorBody(state) : _buildLoadingBody(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingBody() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        const Text(
+          'Story Generation',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 60),
+        _buildMagicCircle(),
+        const SizedBox(height: 48),
+        const Text(
+          'Sprinkling stardust...',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Your ${widget.request.hero.toLowerCase()} is packing for ${widget.request.location}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 40),
+        _buildProgressBar(),
+        const SizedBox(height: 40),
+        _buildTipBox(),
+        const Spacer(),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildErrorBody(AsyncValue<GeneratedStory?> state) {
+    final error = state.error;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('😕', style: TextStyle(fontSize: 56)),
+        const SizedBox(height: 24),
+        const Text(
+          "Couldn't create your story",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            '$error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        GestureDetector(
+          onTap: _generate,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              gradient: AppGradients.accent,
+            ),
+            child: const Text(
+              'Try again',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: const Text(
+            'Go back',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -202,8 +269,14 @@ class _GeneratingStoryPageState extends State<GeneratingStoryPage> {
               borderRadius: BorderRadius.circular(6),
             ),
           ),
-          FractionallySizedBox(
-            widthFactor: _progress,
+          AnimatedBuilder(
+            animation: _progressController,
+            builder: (context, child) {
+              return FractionallySizedBox(
+                widthFactor: 0.15 + (_progressController.value * 0.85),
+                child: child,
+              );
+            },
             child: Container(
               height: 12,
               decoration: BoxDecoration(
