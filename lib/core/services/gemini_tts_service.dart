@@ -25,7 +25,7 @@ class GeminiTtsService {
   final String _model;
   final String _voice;
 
-  Future<Uint8List> synthesize(String text) async {
+  Future<Uint8List> synthesize(String text, {String? systemInstruction}) async {
     if (_apiKey.isEmpty) {
       throw GeminiServiceException(
         'Missing Gemini API key. Run with --dart-define=GEMINI_API_KEY=...',
@@ -41,6 +41,12 @@ class GeminiTtsService {
           'x-goog-api-key': _apiKey,
         },
         body: jsonEncode({
+          if (systemInstruction != null)
+            'system_instruction': {
+              'parts': [
+                {'text': systemInstruction},
+              ],
+            },
           'contents': [
             {
               'parts': [

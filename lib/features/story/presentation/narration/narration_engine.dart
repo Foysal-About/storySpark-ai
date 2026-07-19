@@ -135,10 +135,11 @@ class GeminiTtsNarrationEngine implements NarrationEngine {
   final AudioPlayer _player;
   bool _stopped = false;
 
-  /// Gemini TTS follows spoken-style directions given as a plain-text prefix;
-  /// only the text after the colon is narrated.
-  String _styled(NarrationStyle style, String text) =>
-      "Read this children's story excerpt ${style.instruction}:\n\n$text";
+  /// Gemini TTS follows spoken-style directions given as a system instruction.
+  String _styleInstruction(NarrationStyle style) =>
+      "You are a world-class children's storyteller. Read the provided story excerpt "
+      "${style.instruction}. Focus on emotion, pacing, and character voices. "
+      "Output ONLY the audio for the story text itself.";
 
   @override
   Future<void> start({
@@ -151,12 +152,16 @@ class GeminiTtsNarrationEngine implements NarrationEngine {
     final chunks = _chunkBySentence(content);
     if (chunks.isEmpty) return;
 
+    final systemInstruction = _styleInstruction(style);
+
     try {
       // Title first, with no highlight (it lives outside the story body).
       Future<Uint8List> next = title.isEmpty
           ? _synthesizeWithRetry(
-              _styled(style, content.substring(chunks[0].start, chunks[0].end)))
-          : _synthesizeWithRetry(_styled(style, title));
+              content.substring(chunks[0].start, chunks[0].end),
+              systemInstruction: systemInstruction,
+            )
+          : _synthesizeWithRetry(title, systemInstruction: systemInstruction);
       var start = title.isEmpty ? 0 : -1;
 
       for (var i = start; i < chunks.length; i++) {
@@ -167,7 +172,8 @@ class GeminiTtsNarrationEngine implements NarrationEngine {
         if (i + 1 < chunks.length) {
           final upcoming = chunks[i + 1];
           next = _synthesizeWithRetry(
-            _styled(style, content.substring(upcoming.start, upcoming.end)),
+            content.substring(upcoming.start, upcoming.end),
+            systemInstruction: systemInstruction,
           );
         }
 
@@ -183,10 +189,13 @@ class GeminiTtsNarrationEngine implements NarrationEngine {
   /// The TTS preview models have tight per-minute quotas (~3 RPM on the free
   /// tier), so 429s are expected mid-story: honor the API's suggested delay
   /// and retry before giving up.
-  Future<Uint8List> _synthesizeWithRetry(String text) async {
+  Future<Uint8List> _synthesizeWithRetry(
+    String text, {
+    required String systemInstruction,
+  }) async {
     for (var attempt = 0; ; attempt++) {
       try {
-        return await _tts.synthesize(text);
+        return await _tts.synthesize(text, systemInstruction: systemInstruction);
       } on GeminiRateLimitException catch (e) {
         final wait = e.retryAfter ?? const Duration(seconds: 20);
         if (attempt >= 2 || wait > const Duration(seconds: 60)) rethrow;

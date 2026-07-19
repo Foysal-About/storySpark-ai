@@ -34,19 +34,19 @@ class Env {
   /// or `gemini` (Gemini cloud TTS, sentence-level highlight).
   static const narrationEngine = String.fromEnvironment(
     'NARRATION_ENGINE',
-    defaultValue: 'local',
+    defaultValue: 'gemini',
   );
 
   /// Model used when [narrationEngine] is `gemini`.
   static const geminiTtsModel = String.fromEnvironment(
     'GEMINI_TTS_MODEL',
-    defaultValue: 'gemini-2.5-flash-preview-tts',
+    defaultValue: 'gemini-3.1-flash-tts-preview',
   );
 
-  /// Prebuilt Gemini TTS voice (e.g. Sulafat, Gacrux).
+  /// Prebuilt Gemini TTS voice (e.g. Puck, Charon, Kore, Fenrir).
   static const geminiTtsVoice = String.fromEnvironment(
     'GEMINI_TTS_VOICE',
-    defaultValue: 'Sulafat',
+    defaultValue: 'Puck',
   );
 }
 

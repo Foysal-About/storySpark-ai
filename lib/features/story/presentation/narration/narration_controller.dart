@@ -74,9 +74,10 @@ class NarrationController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Narration failed: $e');
       if (!_userStopped && _fallback != null) {
+        _notice = 'Story voice is busy — continuing with the device voice. ($e)';
         await _resumeOnFallback(content: content, style: style);
       } else if (!_userStopped) {
-        _notice = "Couldn't play the story audio. Please try again.";
+        _notice = "Couldn't play the story audio. ($e)";
       }
     } finally {
       _highlight = null;
@@ -94,7 +95,6 @@ class NarrationController extends ChangeNotifier {
     final remaining = content.substring(resumeFrom.clamp(0, content.length));
     if (remaining.trim().isEmpty) return;
 
-    _notice = 'Story voice is busy — continuing with the device voice.';
     _notify();
 
     try {
